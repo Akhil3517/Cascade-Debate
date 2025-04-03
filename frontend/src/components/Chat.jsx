@@ -1,4 +1,6 @@
 
+
+
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import axios from "axios";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -14,17 +16,17 @@ function Chat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
+  const [difficulty, setDifficulty] = useState("Medium"); // Default difficulty
+
   const messageEndRef = useRef(null);
   const recognitionRef = useRef(null);
 
-  // Stop speech synthesis on refresh/unmount
   useEffect(() => {
     return () => {
       window.speechSynthesis.cancel();
     };
   }, []);
 
-  // Initialize Speech Recognition (Voice Input)
   useEffect(() => {
     if ("webkitSpeechRecognition" in window) {
       recognitionRef.current = new window.webkitSpeechRecognition();
@@ -44,53 +46,49 @@ function Chat() {
     }
   }, []);
 
-  // Text-to-Speech Function (AI Response)
   const speakText = (text) => {
     const synth = window.speechSynthesis;
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = "en-US"; 
-    utterance.rate = 1; 
+    utterance.lang = "en-US";
+    utterance.rate = 1;
     utterance.pitch = 1;
     synth.speak(utterance);
   };
 
-  // Function to send message
   const sendMessage = useCallback(async (msg = input) => {
     if (!msg.trim()) return;
 
     const userMessage = { text: msg, sender: "user" };
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
-    setLoading(true); // Show "Typing..." indicator
+    setLoading(true);
 
     try {
       const response = await axios.post("http://localhost:5000/chat", {
         message: msg,
         character: selectedCharacter,
+        difficulty,
       });
 
       const aiMessage = { text: response.data.reply || "I didn't understand that.", sender: "ai" };
       setMessages((prev) => [...prev, aiMessage]);
 
-      // Speak AI response
       speakText(aiMessage.text);
     } catch (error) {
-      console.error("Error sending message:", error.response?.data || error.message);
+      console.error("Error:", error.response?.data || error.message);
       setMessages((prev) => [...prev, { text: "Error: Unable to fetch response.", sender: "ai" }]);
     } finally {
       setLoading(false);
     }
-  }, [input, selectedCharacter]);
+  }, [input, selectedCharacter, difficulty]);
 
-  // Handle Enter Key Press
   const handleKeyPress = (event) => {
     if (event.key === "Enter") {
-      event.preventDefault(); // Prevents adding a new line
+      event.preventDefault();
       sendMessage();
     }
   };
 
-  // Start Voice Recognition
   const startListening = () => {
     if (recognitionRef.current) {
       setListening(true);
@@ -98,24 +96,48 @@ function Chat() {
     }
   };
 
+  const calculateScore = () => {
+    let aiMessages = messages.filter(m => m.sender === "ai");
+    let totalWords = aiMessages.reduce((acc, msg) => acc + msg.text.split(" ").length, 0);
+    let score = Math.min(10, Math.max(1, Math.floor(totalWords / 10))); // Example scoring system
+    return score;
+  };
+
+  const endChat = () => {
+    const score = calculateScore();
+    navigate('/summary', { state: { messages, character: selectedCharacter, score } });
+  };
+
   return (
     <div className="flex flex-col h-screen p-6 bg-gray-900 text-white">
-      {/* Header */}
       <div className="flex justify-between">
         <h2 className="text-3xl font-bold mb-4 text-center">{selectedCharacter} Chat</h2>
-        <button className="bg-red-600 min-w-10 p-3 rounded text-white" onClick={() => navigate('/agents')}>
+        <button 
+          className="bg-red-600 min-w-10 p-3 rounded text-white" 
+          onClick={endChat}
+        >
           END
         </button>
       </div>
 
-      {/* Chat messages */}
+      <div className="mb-3">
+        <label className="mr-2">Response Length:</label>
+        <select
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value)}
+          className="p-2 bg-gray-700 text-white rounded"
+        >
+          <option value="Easy">Easy</option>
+          <option value="Medium">Medium</option>
+          <option value="Hard">Hard</option>
+        </select>
+      </div>
+
       <div className="flex-grow overflow-y-auto p-4 bg-gray-800 rounded-xl shadow-lg">
         {messages.map((msg, index) => (
           <motion.div
             key={index}
-            className={`mb-2 p-3 rounded-lg w-fit max-w-xs ${
-              msg.sender === "user" ? "bg-blue-500 ml-auto" : "bg-gray-600"
-            }`}
+            className={`mb-2 p-3 rounded-lg w-fit max-w-xs ${msg.sender === "user" ? "bg-blue-500 ml-auto" : "bg-gray-600"}`}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
@@ -124,7 +146,6 @@ function Chat() {
           </motion.div>
         ))}
 
-        {/* Typing indicator */}
         {loading && (
           <motion.div
             className="mb-2 p-3 rounded-lg w-fit max-w-xs bg-gray-600"
@@ -139,18 +160,16 @@ function Chat() {
         <div ref={messageEndRef} />
       </div>
 
-      {/* Input Section */}
       <div className="flex items-center mt-4 space-x-2">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyPress} // 🔹 Listen for Enter key
+          onKeyDown={handleKeyPress}
           placeholder="Type your message..."
           className="flex-grow p-3 rounded-xl bg-gray-700 text-white border-none focus:outline-none focus:ring-2 focus:ring-blue-400"
         />
-        
-        {/* Send Button */}
+
         <motion.button
           onClick={() => sendMessage()}
           className="p-3 bg-blue-500 hover:bg-blue-600 rounded-full shadow-lg"
@@ -160,7 +179,6 @@ function Chat() {
           <FaPaperPlane size={20} />
         </motion.button>
 
-        {/* Voice Button */}
         <motion.button
           onClick={startListening}
           className={`p-3 ${listening ? "bg-red-500" : "bg-green-500"} hover:bg-green-600 rounded-full shadow-lg`}

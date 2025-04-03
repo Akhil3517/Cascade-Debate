@@ -1,4 +1,6 @@
 
+
+
 import express from "express";
 import cors from "cors";
 import axios from "axios";
@@ -13,44 +15,67 @@ app.use(cors());
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
-app.post("/chat", async (req, res) => {
-  const { message, character } = req.body;
+const DIFFICULTY_PROMPTS = {
+  Easy: "Keep the response very concise, limited to one short sentence.",
+  Medium: "Give a balanced response in 2-3 sentences.",
+  Hard: "Provide a detailed response with a logical argument in 4-5 sentences."
+};
 
-  if (!message || !character) {
-    return res.status(400).json({ error: "Message and character are required" });
+app.post("/chat", async (req, res) => {
+  const { message, character, difficulty } = req.body;
+
+  if (!message || !character || !difficulty) {
+    return res.status(400).json({ error: "Message, character, and difficulty are required" });
   }
 
-  const requestPayload = {
-    contents: [
-      {
-        parts: [
-          { text: `You are ${character}. Stay in character and respond concisely:` },
-          { text: message }
-        ],
-      },
-    ],
-  };
+  const prompt = `You are ${character}. Debate the user's statement. ${DIFFICULTY_PROMPTS[difficulty]} Here is the user's message:\n\n"${message}"`;
 
   try {
-    // Call Gemini API
-    const response = await axios.post(GEMINI_API_URL, requestPayload, {
-      headers: { "Content-Type": "application/json" },
+    const response = await axios.post(GEMINI_API_URL, {
+      contents: [{ parts: [{ text: prompt }] }]
     });
 
-    let reply = "I'm not sure how to respond to that.";
-    if (response.data?.candidates?.length > 0) {
-      reply = response.data.candidates[0]?.content?.parts?.map(p => p.text).join(" ") || reply;
-
-      // Limit response to 30 words
-      const words = reply.split(" ").slice(0, 30);
-      reply = words.join(" ") + (words.length === 30 ? "..." : "");
-    }
+    let reply = response.data?.candidates?.[0]?.content?.parts?.map(p => p.text).join(" ") || "I don't know how to respond.";
 
     res.json({ reply });
 
   } catch (error) {
-    console.error("Gemini API Error:", error.response?.data || error.message);
-    res.status(500).json({ error: "Failed to fetch response from Gemini API" });
+    console.error("Error:", error.response?.data || error.message);
+    res.status(500).json({ error: "Failed to fetch response" });
+  }
+});
+
+// 🔹 New Summary Route
+app.post("/summary", async (req, res) => {
+  const { messages, character } = req.body;
+
+  if (!messages || messages.length === 0) {
+    return res.status(400).json({ error: "No messages provided" });
+  }
+
+  // Convert messages to formatted text
+  const conversationText = messages
+    .map((msg) => `${msg.sender === "user" ? "User" : character}: ${msg.text}`)
+    .join("\n");
+
+  const summaryPrompt = `Summarize this debate between the user and ${character}. Provide a clear conclusion and highlight key points of the discussion. Also, assign a score out of 10 based on engagement, argument strength, and response relevance.\n\n${conversationText}`;
+
+  try {
+    const response = await axios.post(GEMINI_API_URL, {
+      contents: [{ parts: [{ text: summaryPrompt }] }]
+    });
+
+    let summaryResponse = response.data?.candidates?.[0]?.content?.parts?.[0]?.text || "Summary unavailable.";
+
+    // Extract score (basic logic, can be refined)
+    let scoreMatch = summaryResponse.match(/(\d+)\/10/);
+    let score = scoreMatch ? parseInt(scoreMatch[1]) : Math.floor(Math.random() * 4) + 7; // Default 7-10 range
+
+    res.json({ summary: summaryResponse, score });
+
+  } catch (error) {
+    console.error("Error generating summary:", error);
+    res.status(500).json({ error: "Failed to generate summary" });
   }
 });
 
