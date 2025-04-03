@@ -87,9 +87,7 @@ const Starting = () => {
             innovators, or predict the future with AI-generated personas, this
             club gives you the power to do so. Simply select a character, and
             our AI-driven system will generate responses based on their
-            historical beliefs, knowledge, and speech style. You can interact
-            via text or even make a voice call to your chosen character,
-            immersing yourself in a realistic, thought-provoking discussion.
+            historical beliefs, knowledge, and speech style. 
           </p>
           {/* Get Started Button */}
           <div className="mt-6">
@@ -119,3 +117,6 @@ const Starting = () => {
 };
 
 export default Starting;
+
+
+
