@@ -83,10 +83,15 @@ function Chat() {
         className="border p-2 rounded mb-4"
       >
         <option>Albert Einstein</option>
-        <option>Adolf Hitler</option>
+        <option>Isaac Newton</option>
         <option>Abraham Lincoln</option>
-        <option>Leonardo da Vinci</option>
-        <option>Marie Curie</option>
+        <option>Mahatma Gandhi</option>
+        <option>Mr.Bean</option>
+        <option>Charlie Chaplin</option>
+        <option>Chatrapati Shivaji</option>
+        <option>Ghengis Khan</option>
+        <option>Ratan Tata</option>
+        <option>Galileo</option>
       </select>
 
       <div className="flex-grow overflow-y-auto mb-4 p-2 border rounded">
