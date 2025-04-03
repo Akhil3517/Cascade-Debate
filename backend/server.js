@@ -1,4 +1,5 @@
-import express from "express";
+
+  import express from "express";
 import cors from "cors";
 import axios from "axios";
 import fs from "fs";
@@ -24,7 +25,11 @@ app.post("/chat", async (req, res) => {
     const requestPayload = {
       contents: [
         {
-          parts: [{ text: `You are ${character}. Respond in their style, keep your answer short and concise.\nUser: ${message}` }],
+          parts: [
+            {
+              text: `You are ${character}. Stay in character, use their personality, and keep responses short (max 2 sentences).`,
+            },
+          ],
         },
       ],
     };
@@ -35,11 +40,10 @@ app.post("/chat", async (req, res) => {
 
     console.log("Full API Response:", JSON.stringify(data, null, 2));
 
-    if (!data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      return res.json({ reply: "No response from AI." });
-    }
+    let reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI.";
 
-    const reply = data.candidates[0].content.parts[0].text;
+    // Limit response to a max of 2 sentences
+    reply = reply.split(". ").slice(0, 2).join(". ") + ".";
 
     console.log(`${character}:`, reply);
     res.json({ reply });
