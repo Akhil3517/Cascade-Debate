@@ -229,7 +229,7 @@ const Agents = () => {
   const handleSelectCharacter = () => {
     navigate('/chat', { state: { character: selectedCharacter } });
   };
-
+ 
   return (
     <motion.div 
       className="flex flex-col items-center bg-[#0A1931] min-h-screen p-8"
