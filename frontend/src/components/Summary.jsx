@@ -138,7 +138,6 @@
 // export default Summary;
 
 
-
 import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -147,13 +146,41 @@ const Summary = () => {
   const navigate = useNavigate();
   const { messages, character } = location.state || { messages: [], character: "Unknown" };
 
-  // Function to generate an accurate summary and score based on user engagement
+  // Function to analyze logical engagement in the debate
   const generateSummary = () => {
     const userStatements = messages.filter(msg => msg.sender === "user").map(msg => msg.text);
     const aiResponses = messages.filter(msg => msg.sender === "ai").map(msg => msg.text);
 
-    // Score based on user statement count (more statements = higher score)
-    let score = Math.min(10, userStatements.length); // 1 point per statement, max 10
+    let score = 0;
+
+    if (userStatements.length > 0) {
+      userStatements.forEach((statement, index) => {
+        const lowerStatement = statement.toLowerCase();
+
+        // Logical structure: Look for words like 'because', 'therefore', 'hence'
+        if (/\b(because|therefore|hence|thus|so|consequently)\b/.test(lowerStatement)) {
+          score += 2;
+        }
+
+        // Directly addressing AI's argument (rebuttal)
+        if (index < aiResponses.length && lowerStatement.includes("you said")) {
+          score += 2;
+        }
+
+        // Questioning AI (challenging the response)
+        if (/\?$/.test(statement)) {
+          score += 2;
+        }
+
+        // Expressing agreement or disagreement
+        if (/\b(i agree|i disagree|that's wrong|you're right)\b/.test(lowerStatement)) {
+          score += 2;
+        }
+      });
+
+      // Cap score at 10
+      score = Math.min(10, score);
+    }
 
     let summary = `**Overview:**  
     The debate between the user and ${character} had ${userStatements.length} user statement(s) and ${aiResponses.length} response(s) from ${character}.  
@@ -169,7 +196,7 @@ const Summary = () => {
       - **${character}'s Responses:** ${aiResponses.join("; ") || "Minimal response from AI."}  
       
       **Conclusion:**  
-      The user participated with ${userStatements.length} statement(s), leading to a ${score}/10 engagement score. A more detailed discussion could enhance the debate.`;
+      The user participated with ${userStatements.length} statement(s), leading to a ${score}/10 engagement score. A more structured debate can further enhance the discussion.`;
     }
 
     return { summary, score };
@@ -178,7 +205,7 @@ const Summary = () => {
   const { summary, score } = generateSummary();
 
   return (
-    <div className="flex flex-col items-center justify-center h-max  bg-gray-900 text-white p-6">
+    <div className="bg-gray-900 min-h-screen flex flex-col items-center justify-center text-white p-6">
       <div className="w-full max-w-3xl bg-gray-800 p-6 rounded-lg shadow-lg">
         <h2 className="text-3xl font-bold text-center mb-4">Debate Summary</h2>
         <p className="text-lg mb-4 whitespace-pre-line">{summary}</p>
