@@ -1,15 +1,18 @@
-
-
-
-
-
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Clock from "../assets/Clock.jpg";
-
+import { ToastContainer, toast } from 'react-toastify';
 const Login = () => {
   const navigate = useNavigate();
 
+  const notify = () => {
+    navigate('/Agents', {
+      state: { showToast: true, message: 'Login Success' }
+    });
+  };
+
+  
+  
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#243c5a] text-[#ffd700] relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-[#243c5a] via-[#37474f] to-[#1a237e] opacity-80"></div>
@@ -49,11 +52,12 @@ const Login = () => {
         </div>
 
         <button 
-          onClick={() => navigate('/Agents')}
+          onClick={notify}
           className="bg-[#ffd700] text-[#1a237e] hover:bg-[#ffeb3b] py-3 px-6 rounded-lg font-semibold uppercase tracking-wide transition-colors duration-300 animate-pulse-button"
         >
           Enter the Realm
         </button>
+        <ToastContainer/>
       </div>
     </div>
   );
